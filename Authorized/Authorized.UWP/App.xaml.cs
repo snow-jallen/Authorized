@@ -4,7 +4,6 @@ using Windows.ApplicationModel.Activation;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
-using xf = Xamarin.Forms;
 
 namespace Authorized.UWP
 {
@@ -49,8 +48,6 @@ namespace Authorized.UWP
                 rootFrame.NavigationFailed += OnNavigationFailed;
                 global::Xamarin.Forms.Forms.SetFlags("Shell_UWP_Experimental");
                 Xamarin.Forms.Forms.Init(e);
-
-                xf.DependencyService.Register<WabBrowser>();
 
                 if (e.PreviousExecutionState == ApplicationExecutionState.Terminated)
                 {

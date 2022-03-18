@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Security.Authentication.Web;
 
+[assembly: Xamarin.Forms.Dependency(typeof(Authorized.UWP.WabBrowser))]
 namespace Authorized.UWP
 {
     public class WabBrowser : IBrowser
