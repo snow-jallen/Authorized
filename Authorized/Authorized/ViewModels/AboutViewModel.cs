@@ -8,6 +8,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Xamarin.Essentials;
 using Xamarin.Forms;
 
 namespace Authorized.ViewModels
@@ -25,6 +26,7 @@ namespace Authorized.ViewModels
                 ClientId = "aspen-web",
                 Scope = "profile email api-use",
                 RedirectUri = "xamarinformsclients://callback",
+                PostLogoutRedirectUri = "xamarinformsclients://callback",
                 Browser = browser
             };
 
@@ -39,11 +41,10 @@ namespace Authorized.ViewModels
         Lazy<HttpClient> _apiClient = new Lazy<HttpClient>(() => new HttpClient());
         string accessToken;
 
-        [ObservableProperty]
-        private string title;
-
-        [ObservableProperty]
-        private string outputText;
+        [ObservableProperty] private string title;
+        [ObservableProperty] private string outputText;
+        [ObservableProperty, AlsoNotifyChangeFor(nameof(CanLogOut))] private bool canLogIn;
+        public bool CanLogOut => !CanLogIn;
 
         [ICommand]
         private async Task CopyJwt()
@@ -52,31 +53,58 @@ namespace Authorized.ViewModels
         }
 
         [ICommand]
+        private async Task Logout()
+        {
+            SecureStorage.Remove("accessToken");
+            try
+            {
+                await _client.LogoutAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            CanLogIn = true;
+        }
+
+
+        [ICommand]
         private async Task Login()
         {
             try
             {
-                _result = await _client.LoginAsync(new LoginRequest());
-
-                if (_result.IsError)
+                accessToken = await SecureStorage.GetAsync("accessToken");
+                if (accessToken == null)
                 {
-                    OutputText = _result.Error;
-                    return;
+                    _result = await _client.LoginAsync(new LoginRequest());
+
+                    if (_result.IsError)
+                    {
+                        OutputText = _result.Error;
+                        return;
+                    }
+
+                    var sb = new StringBuilder(128);
+                    foreach (var claim in _result.User.Claims)
+                    {
+                        sb.AppendFormat("{0}: {1}\n", claim.Type, claim.Value);
+                    }
+
+                    sb.AppendFormat("\n{0}: {1}\n", "refresh token", _result?.RefreshToken ?? "none");
+                    sb.AppendFormat("\n{0}: {1}\n", "access token", _result.AccessToken);
+                    accessToken = _result.AccessToken;
+
+                    await SecureStorage.SetAsync("accessToken", accessToken);
+
+                    OutputText = sb.ToString();
                 }
 
-                var sb = new StringBuilder(128);
-                foreach (var claim in _result.User.Claims)
+                CanLogIn = false;
+
+                if (_apiClient.Value.DefaultRequestHeaders.Authorization == null)
                 {
-                    sb.AppendFormat("{0}: {1}\n", claim.Type, claim.Value);
+                    _apiClient.Value.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken ?? "");
                 }
-
-                sb.AppendFormat("\n{0}: {1}\n", "refresh token", _result?.RefreshToken ?? "none");
-                sb.AppendFormat("\n{0}: {1}\n", "access token", _result.AccessToken);
-                accessToken = _result.AccessToken;
-
-                OutputText = sb.ToString();
-
-                _apiClient.Value.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _result?.AccessToken ?? "");
             }
             catch (Exception ex)
             {

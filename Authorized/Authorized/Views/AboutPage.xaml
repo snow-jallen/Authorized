@@ -16,7 +16,11 @@
     </ContentPage.Resources>
 
     <StackLayout Padding="20">
-        <Button Text="Login" Command="{Binding LoginCommand}" Padding="20" />
+        <Button Text="Log In" Command="{Binding LoginCommand}" IsVisible="{Binding CanLogIn}" Padding="20" />
+        <Button Text="Log Out"
+                Command="{Binding LogoutCommand}"
+                IsVisible="{Binding CanLogOut}"
+                Padding="20" />
         <Button Text="Call Api" Command="{Binding CallApiCommand}" Padding="20" />
         <Label Text="{Binding OutputText}"
                VerticalOptions="EndAndExpand"
